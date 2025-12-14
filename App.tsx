@@ -64,11 +64,19 @@ export default function App() {
           if (pendingUser) {
             try {
               const { name, email } = JSON.parse(pendingUser);
-              await createUser({
-                name,
-                email,
-                role: UserRole.USER
-              });
+              const { data: existingUser } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', email)
+                .maybeSingle();
+
+              if (!existingUser) {
+                await createUser({
+                  name,
+                  email,
+                  role: UserRole.USER
+                });
+              }
             } catch (error) {
               console.error('Error creating user record:', error);
             }
@@ -85,7 +93,6 @@ export default function App() {
         if (currentUser) {
           setCurrentPage('tryon');
         } else {
-          // User record not found, perhaps needs confirmation
           setCurrentPage('login');
         }
       } else if (event === 'SIGNED_OUT') {
@@ -131,7 +138,7 @@ export default function App() {
       // Landing Page
       pageContent = (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-purple-600">
+            <h1 className="text-5xl font-extrabold text-gray-900 mb-6">
               Seu Provador Virtual Inteligente
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mb-10">

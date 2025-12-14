@@ -94,6 +94,12 @@ export const register = async (name: string, email: string, pass: string): Promi
       localStorage.setItem('pendingUser', JSON.stringify({ name, email }));
       localStorage.setItem('awaitingConfirmation', 'true');
 
+      // If user was auto-confirmed (no email verification required), log them out
+      // to maintain consistent UX flow
+      if (data.session) {
+        await signOut();
+      }
+
       return { success: true, message: 'Email de confirmação enviado. Verifique seu email para continuar.' };
     }
     throw new Error('Falha ao criar conta');

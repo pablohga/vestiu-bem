@@ -42,6 +42,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
         if (result.success) {
           setConfirmationMessage(result.message);
           setCurrentMode('confirmation');
+          setName('');
+          setEmail('');
+          setPassword('');
         }
       }
     } catch (err: any) {
@@ -53,11 +56,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <Card className="w-full max-w-md p-8 shadow-xl border-brand-100">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Confirmação Enviada</h1>
-            <p className="text-gray-500 mt-2">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Cadastro Realizado</h1>
+            <p className="text-gray-600 mb-2">
               {confirmationMessage}
             </p>
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-sm text-blue-800">
+                Após confirmar seu email, você será redirecionado para a tela de boas-vindas onde poderá fazer login.
+              </p>
+            </div>
           </div>
         </Card>
       </div>
