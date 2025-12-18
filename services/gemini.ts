@@ -9,8 +9,8 @@ export const generateTryOnImage = async (
   clothingImage: Asset,
   userPrompt?: string
 ): Promise<string> => {
-  const apiKey = 'AIzaSyD5JKOyXonE8PrSYfr8JF9lEhjZDoaiZec';
-  /* const apiKey = process.env.API_KEY; */
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  
   if (!apiKey) {
     throw new Error("API Key não encontrada. Configure a variável de ambiente API_KEY.");
   }

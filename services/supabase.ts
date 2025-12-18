@@ -1,9 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types';
 
-// Remove custom ImportMetaEnv and ImportMeta interfaces.
-// TypeScript already provides the correct global type for import.meta.env.
-
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -15,15 +12,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Auth functions
 export const signUp = async (email: string, password: string, name: string) => {
-  return await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        name: name,
+        name: name
       }
     }
   });
+  
+  return { data, error };
 };
 
 export const signIn = async (email: string, password: string) => {
@@ -39,7 +38,6 @@ export const signOut = async () => {
 
 export const getCurrentUser = async () => {
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) return null;
 
   // Get additional user data from users table
@@ -49,7 +47,30 @@ export const getCurrentUser = async () => {
     .eq('id', user.id)
     .single();
 
-  if (!userData) return null;
+  if (!userData) {
+    // User record doesn't exist, create it
+    const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+    const email = user.email || '';
+    const role = email === 'admin@vestiubem.com' ? 'admin' : 'user';
+
+    try {
+      const newUser = await createUser({
+        name,
+        email,
+        role
+      });
+      
+      return {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role as any
+      };
+    } catch (error) {
+      console.error('Error creating user record:', error);
+      return null;
+    }
+  }
 
   return {
     id: userData.id,
@@ -68,13 +89,32 @@ export const getUsers = async () => {
 };
 
 export const createUser = async (userData: { name: string; email: string; role: string }) => {
+  // Pega o ID do usuário autenticado atual
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('Nenhum usuário autenticado para criar registro');
+  }
+
+  console.log('📝 Criando usuário na tabela users com ID:', user.id);
+
   const { data, error } = await supabase
     .from('users')
-    .insert([userData])
+    .insert([{
+      id: user.id,  // IMPORTANTE: Usa o mesmo ID do auth.users
+      name: userData.name,
+      email: userData.email,
+      role: userData.role
+    }])
     .select()
     .single();
-
-  if (error) throw error;
+  
+  if (error) {
+    console.error('❌ Erro ao inserir na tabela users:', error);
+    throw error;
+  }
+  
+  console.log('✅ Usuário inserido com sucesso:', data);
   return data;
 };
 
@@ -83,7 +123,7 @@ export const deleteUser = async (userId: string) => {
     .from('users')
     .delete()
     .eq('id', userId);
-
+  
   if (error) throw error;
 };
 
@@ -107,7 +147,7 @@ export const createClothingItem = async (item: {
     .insert([item])
     .select()
     .single();
-
+  
   if (error) throw error;
   return data;
 };
@@ -117,7 +157,7 @@ export const deleteClothingItem = async (itemId: string) => {
     .from('clothing_items')
     .delete()
     .eq('id', itemId);
-
+  
   if (error) throw error;
 };
 
@@ -148,7 +188,7 @@ export const createGeneratedImage = async (image: {
     }])
     .select()
     .single();
-
+  
   if (error) throw error;
   return data;
 };

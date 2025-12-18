@@ -22,6 +22,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
   }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('handleSubmit', currentMode, { name, email, password });
     e.preventDefault();
     setError('');
 
@@ -29,7 +30,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
       if (currentMode === 'login') {
         const user = await login(email, password);
         if (user) {
+          console.log(user)
           onSuccess(user);
+          console.log('SUCESSO')
         } else {
           setError('Email ou senha inválidos');
         }
