@@ -18,6 +18,12 @@ import {
 import { supabase } from './supabase';
 
 // Seed Admin & Default Catalog
+// Helper: Converte HTTP para HTTPS
+const ensureHttps = (url: string): string => {
+  if (!url) return url;
+  return url.replace(/^http:\/\//i, 'https://');
+};
+
 const seedData = async () => {
   try {
     const { data: users } = await getUsers();
@@ -66,7 +72,7 @@ const seedData = async () => {
 
 seedData();
 
-/* export const login = async (email: string, pass: string): Promise<User | null> => {
+export const login = async (email: string, pass: string): Promise<User | null> => {
   try {
     console.log('🔐 Iniciando login para:', email);
     
@@ -141,93 +147,6 @@ seedData();
     console.error('❌ Erro geral no login:', error);
     return null;
   }
-}; */
-
-export const login = async (email: string, pass: string): Promise<User | null> => {
-  try {
-    console.log('🔐 Iniciando login para:', email);
-    
-    // 1. Autenticação no Supabase
-    const { data: authData, error: authError } = await signIn(email, pass);
-    
-    if (authError) {
-      console.error('❌ Erro na autenticação:', authError.message);
-      throw new Error(authError.message || 'Falha ao autenticar');
-    }
-    
-    if (!authData?.user) {
-      console.error('❌ Nenhum usuário retornado da autenticação');
-      throw new Error('Usuário não encontrado na autenticação');
-    }
-
-    const userId = authData.user.id;
-    console.log('✅ Autenticação bem-sucedida. User ID:', userId);
-
-    const buildFallbackUser = (): User => {
-      const name = authData.user.user_metadata?.name 
-        || authData.user.email?.split('@')[0] 
-        || 'User';
-      
-      const userEmail = authData.user.email || email;
-      const role = userEmail.toLowerCase() === 'admin@vestiubem.com' 
-        ? UserRole.ADMIN 
-        : UserRole.USER;
-
-      return {
-        id: userId,
-        name,
-        email: userEmail,
-        role
-      };
-    };
-
-    // 2. Buscar usuário no banco de dados
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, name, email, role')
-      .eq('id', userId)
-      .maybeSingle();
-
-    // 3. Se usuário existe, retornar dados
-    if (!userError && userData) {
-      console.log('✅ Usuário encontrado na base de dados:', userData.email);
-      return {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: (userData.role as UserRole) || UserRole.USER
-      };
-    }
-
-    // 4. Se usuário não existe, criar registro
-    console.log('📝 Criando novo registro de usuário...');
-    
-    try {
-      const newUser = await createUser({
-        name: buildFallbackUser().name,
-        email: buildFallbackUser().email,
-        role: buildFallbackUser().role
-      });
-
-      console.log('✅ Usuário criado com sucesso:', newUser.email);
-
-      return {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: (newUser.role as UserRole) || UserRole.USER
-      };
-    } catch (createError) {
-      console.error('❌ Erro ao criar usuário, usando fallback:', createError);
-      
-      // Último recurso: usar os dados do auth para manter o fluxo
-      return buildFallbackUser();
-    }
-
-  } catch (error: any) {
-    console.error('❌ Erro geral no login:', error);
-    throw new Error(error.message || 'Erro ao realizar login');
-  }
 };
 
 export const register = async (name: string, email: string, pass: string): Promise<{ success: boolean; message: string }> => {
@@ -269,153 +188,49 @@ export const register = async (name: string, email: string, pass: string): Promi
 };
 
 export const logout = async () => {
-  try {
-    console.log('🚪 Fazendo logout...');
-    const { error } = await signOut();
-    if (error) {
-      console.error('❌ Erro ao fazer logout:', error);
-      throw error;
-    }
-    console.log('✅ Logout realizado com sucesso');
-  } catch (error) {
-    console.error('❌ Erro no logout:', error);
-    // Mesmo com erro, tenta limpar a sessão localmente
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (e) {
-      console.error('❌ Erro ao limpar sessão local:', e);
-    }
-    throw error;
-  }
+  await signOut();
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     console.log('🔍 Buscando usuário atual...');
     
-    // Adiciona timeout para evitar travamento infinito
-    const getUserPromise = supabase.auth.getUser();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout ao buscar usuário')), 10000)
-    );
-    
-    const { data: { user }, error: authError } = await Promise.race([
-      getUserPromise,
-      timeoutPromise
-    ]) as any;
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
       console.error('❌ Erro no auth.getUser:', authError);
       return null;
     }
 
-    const buildFallbackUser = (): User => {
-      const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
-      const email = user.email || '';
-      const role = email.toLowerCase() === 'admin@vestiubem.com' ? UserRole.ADMIN : UserRole.USER;
-
-      return {
-        id: user.id,
-        name,
-        email,
-        role
-      };
-    };
-
     console.log('✅ Auth user encontrado:', user.id);
 
-    // Query com timeout também
-    const queryPromise = supabase
+    const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
-      .maybeSingle();
-    
-    const queryTimeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout na query de usuário')), 5000)
-    );
-
-    let userData, userError;
-    try {
-      const result = await Promise.race([queryPromise, queryTimeoutPromise]) as any;
-      userData = result.data;
-      userError = result.error;
-    } catch (queryError: any) {
-      console.warn('⚠️ Erro ou timeout na query de usuário:', queryError);
-      userError = queryError;
-      userData = null;
-    }
+      .single();
 
     if (userError || !userData) {
-      console.warn('⚠️ Usuário não encontrado na tabela users, tentando criar...', userError);
+      console.error('⚠️ Usuário não encontrado na tabela users:', userError);
       
-      // Verifica se o erro é de usuário já existente (duplicação)
-      const isDuplicateError = userError?.code === '23505' || 
-                               userError?.message?.includes('duplicate') ||
-                               userError?.message?.includes('already exists');
-      
-      if (isDuplicateError) {
-        console.log('ℹ️ Usuário já existe, buscando novamente...');
-        // Se já existe, tenta buscar novamente
-        const { data: retryData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
+      // Cria o usuário automaticamente
+      const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+      const email = user.email || '';
+      const role = email === 'admin@vestiubem.com' ? UserRole.ADMIN : UserRole.USER;
+
+      try {
+        const newUser = await createUser({ name, email, role });
+        console.log('✅ Usuário criado automaticamente:', newUser);
         
-        if (retryData) {
-          console.log('✅ Usuário encontrado após retry:', retryData);
-          return {
-            id: retryData.id,
-            name: retryData.name,
-            email: retryData.email,
-            role: (retryData.role as UserRole) || UserRole.USER
-          };
-        }
-      }
-      
-      // Tenta criar apenas se não for erro de duplicação
-      if (!isDuplicateError) {
-        try {
-          const newUser = await createUser({ 
-            name: buildFallbackUser().name, 
-            email: buildFallbackUser().email, 
-            role: buildFallbackUser().role 
-          });
-          console.log('✅ Usuário criado automaticamente:', newUser);
-          
-          return {
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            role: (newUser.role as UserRole) || UserRole.USER
-          };
-        } catch (createError: any) {
-          // Se erro de duplicação ao criar, busca o usuário existente
-          if (createError?.code === '23505' || createError?.message?.includes('duplicate')) {
-            console.log('ℹ️ Usuário já existe, buscando...');
-            const { data: existingData } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .maybeSingle();
-            
-            if (existingData) {
-              return {
-                id: existingData.id,
-                name: existingData.name,
-                email: existingData.email,
-                role: (existingData.role as UserRole) || UserRole.USER
-              };
-            }
-          }
-          console.error('❌ Erro ao criar usuário, usando fallback:', createError);
-          return buildFallbackUser();
-        }
-      } else {
-        // Se é erro de duplicação mas não encontrou, usa fallback
-        console.warn('⚠️ Erro de duplicação mas usuário não encontrado, usando fallback');
-        return buildFallbackUser();
+        return {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role as UserRole
+        };
+      } catch (createError) {
+        console.error('❌ Erro ao criar usuário:', createError);
+        return null;
       }
     }
 
@@ -425,7 +240,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       id: userData.id,
       name: userData.name,
       email: userData.email,
-      role: (userData.role as UserRole) || UserRole.USER
+      role: userData.role as UserRole
     };
   } catch (error) {
     console.error('❌ Erro em getCurrentUser:', error);
@@ -507,25 +322,31 @@ export const getFavorites = async (userId: string): Promise<ClothingItem[]> => {
 export const getClothingItems = async (): Promise<ClothingItem[]> => {
   const { data, error } = await getClothingItemsSupabase();
   if (error) throw error;
-  return data || [];
+  
+  // Converter todas as URLs HTTP para HTTPS
+  return (data || []).map(item => ({
+    ...item,
+    image_url: ensureHttps(item.image_url),
+    shein_link: ensureHttps(item.shein_link)
+  }));
 };
 
 export const addClothingItem = async (item: Omit<ClothingItem, 'id'>): Promise<ClothingItem> => {
   const newItem = await createClothingItem({
     name: item.name,
     description: item.description,
-    image_url: item.image_url,
+    image_url: ensureHttps(item.image_url), // Garantir HTTPS
     price: item.price,
-    shein_link: item.shein_link
+    shein_link: ensureHttps(item.shein_link) // Garantir HTTPS
   });
   
   return {
     id: newItem.id,
     name: newItem.name,
     description: newItem.description || undefined,
-    image_url: newItem.image_url,
+    image_url: ensureHttps(newItem.image_url),
     price: newItem.price,
-    shein_link: newItem.shein_link
+    shein_link: ensureHttps(newItem.shein_link)
   };
 };
 
