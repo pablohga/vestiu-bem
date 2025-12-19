@@ -153,12 +153,53 @@ export const createClothingItem = async (item: {
 };
 
 export const deleteClothingItem = async (itemId: string) => {
-  const { error } = await supabase
+  console.log('deleteClothingItem chamado com ID:', itemId);
+  
+  // Verifica se o usuário está autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+  
+  console.log('Usuário autenticado:', user.id);
+  
+  // Verifica se é admin
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  if (userError || !userData) {
+    console.error('Erro ao verificar permissões:', userError);
+    throw new Error('Erro ao verificar permissões de administrador');
+  }
+  
+  if (userData.role !== 'ADMIN') {
+    throw new Error('Apenas administradores podem deletar itens');
+  }
+  
+  console.log('Permissões verificadas. Tentando deletar item...');
+  
+  // Deleta e retorna os dados deletados para confirmar
+  const { data, error } = await supabase
     .from('clothing_items')
     .delete()
-    .eq('id', itemId);
+    .eq('id', itemId)
+    .select();
+
+  if (error) {
+    console.error('Erro no deleteClothingItem:', error);
+    throw error;
+  }
   
-  if (error) throw error;
+  if (!data || data.length === 0) {
+    console.warn('Nenhum item foi deletado. ID pode não existir ou não há permissão:', itemId);
+    throw new Error('Item não encontrado ou sem permissão para deletar');
+  }
+  
+  console.log('Item deletado com sucesso:', data);
+  return data;
 };
 
 // Generated images

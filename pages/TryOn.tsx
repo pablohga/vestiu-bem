@@ -245,9 +245,15 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
                   <a href={resultImage} download="meu-look-vestiubem.png">
                     <Button variant="outline">⬇️ Baixar Imagem</Button>
                   </a>
-                  <Button onClick={() => onNavigate?.('shein-gallery')}>
-                    🛍️ Comprar na Shein
-                  </Button>
+                  {selectedClothing && selectedClothing.shein_link && selectedClothing.shein_link !== '#' ? (
+                    <a href={selectedClothing.shein_link} target="_blank" rel="noopener noreferrer">
+                      <Button>🛍️ Comprar na Shein</Button>
+                    </a>
+                  ) : (
+                    <Button onClick={() => onNavigate?.('shein-gallery')}>
+                      🛍️ Comprar na Shein
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

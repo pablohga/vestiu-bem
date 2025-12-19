@@ -65,11 +65,15 @@ export const AdminDashboard: React.FC = () => {
     if (confirm('Tem certeza que deseja remover este item do catálogo?')) {
       try {
         await deleteClothingItem(id);
-        loadData();
+        // Atualiza o estado localmente removendo o item da lista
+        setCatalog(prevCatalog => prevCatalog.filter(item => item.id !== id));
         alert('Item removido com sucesso!');
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao remover item:', error);
-        alert('Erro ao remover item. Tente novamente.');
+        const errorMessage = error?.message || 'Erro desconhecido ao remover item';
+        alert(`Erro ao remover item: ${errorMessage}`);
+        // Em caso de erro, recarrega os dados para garantir sincronização
+        await loadData();
       }
     }
   };
