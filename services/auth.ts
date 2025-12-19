@@ -330,9 +330,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
       .select('*')
       .eq('id', user.id)
       .maybeSingle();
-    
-    const queryTimeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout na query de usuário')), 5000)
+
+    const queryTimeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout na query de usuário')), 10000)
     );
 
     let userData, userError;
@@ -344,6 +344,11 @@ export const getCurrentUser = async (): Promise<User | null> => {
       console.warn('⚠️ Erro ou timeout na query de usuário:', queryError);
       userError = queryError;
       userData = null;
+      // On timeout, use fallback user to avoid null return
+      if (queryError.message.includes('Timeout')) {
+        console.log('⏰ Timeout na query, usando dados do auth como fallback');
+        return buildFallbackUser();
+      }
     }
 
     if (userError || !userData) {

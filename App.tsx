@@ -22,11 +22,18 @@ export default function App() {
     async function loadUser() {
       console.log('loadUser')
       let currentUser: User | null = null;
-      
+
       try {
-        console.log('🚀 App: Carregando usuário...');
-        currentUser = await getCurrentUser();
-        console.log('📦 App: Usuário carregado:', currentUser);
+        // Check if there's an active session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('🚀 App: Sessão ativa encontrada, carregando usuário...');
+          currentUser = await getCurrentUser();
+          console.log('📦 App: Usuário carregado:', currentUser);
+        } else {
+          console.log('ℹ️ App: Nenhuma sessão ativa');
+          currentUser = null;
+        }
       } catch (e) {
         console.error('❌ App: Erro ao carregar usuário:', e);
         currentUser = null;
@@ -106,13 +113,13 @@ export default function App() {
           return;
         }
 
-        // Normal login - apenas se não estiver fazendo login manual
-        if (!isLoggingIn) {
+        // Normal login - apenas se não estiver fazendo login manual e se não há usuário já logado
+        if (!isLoggingIn && !user) {
           console.log('🔐 App: Obtendo dados do usuário após SIGNED_IN...');
           try {
             const currentUser = await getCurrentUser();
             console.log('👤 App: Usuário obtido:', currentUser);
-            
+
             if (currentUser) {
               setUser(currentUser);
               console.log('✅ App: Navegando para tryon');

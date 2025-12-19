@@ -63,8 +63,14 @@ export const AdminDashboard: React.FC = () => {
 
   const handleDeleteItem = async (id: string) => {
     if (confirm('Tem certeza que deseja remover este item do catálogo?')) {
-      await deleteClothingItem(id);
-      loadData();
+      try {
+        await deleteClothingItem(id);
+        loadData();
+        alert('Item removido com sucesso!');
+      } catch (error) {
+        console.error('Erro ao remover item:', error);
+        alert('Erro ao remover item. Tente novamente.');
+      }
     }
   };
 
