@@ -22,9 +22,11 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const clothingInputRef = useRef<HTMLInputElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load dynamic catalog
@@ -34,6 +36,23 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     };
     loadCatalog();
   }, []);
+
+  // Close share menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setShowShareMenu(false);
+      }
+    };
+
+    if (showShareMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showShareMenu]);
 
   const handleUserImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -117,6 +136,86 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     }
   };
 
+  const handleShare = async (platform?: string) => {
+    if (!resultImage) return;
+
+    const shareText = `Confira meu novo look criado com VestiuBem! ${selectedClothing?.name ? `Roupa: ${selectedClothing.name}` : ''}`;
+    const shareUrl = window.location.href;
+
+    // Try Web Share API first (mobile)
+    if (!platform && navigator.share) {
+      try {
+        // Convert base64 to blob for sharing
+        const response = await fetch(resultImage);
+        const blob = await response.blob();
+        const file = new File([blob], 'meu-look.png', { type: 'image/png' });
+
+        await navigator.share({
+          title: 'Meu Look - VestiuBem',
+          text: shareText,
+          url: shareUrl,
+          files: [file]
+        });
+        setShowShareMenu(false);
+        return;
+      } catch (err) {
+        // User cancelled or error, fall through to platform-specific sharing
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
+    }
+
+    // Platform-specific sharing
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+
+    let shareLink = '';
+
+    switch (platform) {
+      case 'whatsapp':
+        shareLink = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+        break;
+      case 'facebook':
+        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        break;
+      case 'twitter':
+        shareLink = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct sharing via URL, so we'll copy the image
+        try {
+          const response = await fetch(resultImage);
+          const blob = await response.blob();
+          const clipboardItem = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([clipboardItem]);
+          alert('Imagem copiada! Cole no Instagram para compartilhar.');
+          setShowShareMenu(false);
+          return;
+        } catch (err) {
+          alert('Não foi possível copiar a imagem. Tente baixar a imagem e compartilhar manualmente.');
+          return;
+        }
+      case 'copy-link':
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('Link copiado para a área de transferência!');
+          setShowShareMenu(false);
+          return;
+        } catch (err) {
+          alert('Não foi possível copiar o link.');
+          return;
+        }
+      default:
+        return;
+    }
+
+    if (shareLink) {
+      window.open(shareLink, '_blank', 'width=600,height=400');
+      setShowShareMenu(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Left Panel: Inputs */}
@@ -182,7 +281,7 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
              </div>
           </div>
 
-          <p className="text-sm font-semibold text-gray-500 mb-2">Ou escolha do catálogo Shein:</p>
+          <p className="text-xl font-semibold text-gray-500 mb-2">Ou escolha do catálogo Shein:</p>
           {catalog.length === 0 ? (
             <p className="text-xs text-gray-400 italic p-2">Nenhum item no catálogo. Adicione via Admin.</p>
           ) : (
@@ -241,7 +340,7 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
             {resultImage && (
               <div className="w-full h-full flex flex-col items-center animate-fade-in">
                 <img src={resultImage} alt="Resultado" className="max-h-[70vh] rounded-lg shadow-2xl mb-6 object-contain" />
-                <div className="flex gap-4">
+                <div className="flex gap-4 flex-wrap justify-center">
                   <a href={resultImage} download="meu-look-vestiubem.png">
                     <Button variant="outline">⬇️ Baixar Imagem</Button>
                   </a>
@@ -254,6 +353,58 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
                       🛍️ Comprar na Shein
                     </Button>
                   )}
+                  <div className="relative" ref={shareMenuRef}>
+                    <Button onClick={() => setShowShareMenu(!showShareMenu)}>
+                      📤 Compartilhar Look
+                    </Button>
+                    {showShareMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-2">
+                        <button
+                          onClick={() => handleShare()}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <span>📱</span>
+                          <span>Compartilhar (Nativo)</span>
+                        </button>
+                        <button
+                          onClick={() => handleShare('whatsapp')}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <span>💬</span>
+                          <span>WhatsApp</span>
+                        </button>
+                        <button
+                          onClick={() => handleShare('facebook')}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <span>👥</span>
+                          <span>Facebook</span>
+                        </button>
+                        <button
+                          onClick={() => handleShare('twitter')}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <span>🐦</span>
+                          <span>Twitter</span>
+                        </button>
+                        <button
+                          onClick={() => handleShare('instagram')}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <span>📷</span>
+                          <span>Instagram (Copiar)</span>
+                        </button>
+                        <div className="border-t border-gray-200 my-1"></div>
+                        <button
+                          onClick={() => handleShare('copy-link')}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        >
+                          <span>🔗</span>
+                          <span>Copiar Link</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

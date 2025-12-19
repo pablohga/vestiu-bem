@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Card } from '../components/UI';
+import { Button, Input, Card, LoadingSpinner } from '../components/UI';
 import { login, register } from '../services/auth';
 import { User } from '../types';
 
@@ -16,6 +16,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setCurrentMode(mode);
@@ -25,6 +26,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
     console.log('handleSubmit', currentMode, { name, email, password });
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
     try {
       if (currentMode === 'login') {
@@ -52,6 +54,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
       }
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -122,8 +126,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
             </div>
           )}
 
-          <Button type="submit" className="w-full mt-4 py-3 text-lg">
-            {currentMode === 'login' ? 'Entrar' : 'Cadastrar'}
+          <Button 
+            type="submit" 
+            className="w-full mt-4 py-3 text-lg flex items-center justify-center gap-2"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <LoadingSpinner />
+                {currentMode === 'login' ? 'Entrando...' : 'Cadastrando...'}
+              </>
+            ) : (
+              currentMode === 'login' ? 'Entrar' : 'Cadastrar'
+            )}
           </Button>
         </form>
 
