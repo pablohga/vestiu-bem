@@ -139,7 +139,15 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
   const handleShare = async (platform?: string) => {
     if (!resultImage) return;
 
-    const shareText = `Confira meu novo look criado com VestiuBem! ${selectedClothing?.name ? `Roupa: ${selectedClothing.name}` : ''}`;
+    let shareText = `Confira meu novo look criado com VestiuBem!`;
+    
+    if (selectedClothing) {
+      shareText += `\n\nRoupa: ${selectedClothing.name}`;
+      if (selectedClothing.shein_link && selectedClothing.shein_link !== '#') {
+        shareText += `\nLink: ${selectedClothing.shein_link}`;
+      }
+    }
+    
     const shareUrl = window.location.href;
 
     // Try Web Share API first (mobile)
