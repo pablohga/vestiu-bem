@@ -136,6 +136,12 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     }
   };
 
+  // Detect if running on mobile device
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.innerWidth <= 768);
+  };
+
   const handleShare = async (platform?: string) => {
     if (!resultImage) return;
 
@@ -149,9 +155,10 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     }
     
     const shareUrl = window.location.href;
+    const mobile = isMobile();
 
-    // Try Web Share API first (mobile)
-    if (!platform && navigator.share) {
+    // Try Web Share API first (mobile/webview)
+    if (!platform && navigator.share && mobile) {
       try {
         // Convert base64 to blob for sharing
         const response = await fetch(resultImage);
@@ -182,13 +189,31 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
 
     switch (platform) {
       case 'whatsapp':
-        shareLink = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+        if (mobile) {
+          // Mobile: Use WhatsApp app protocol (iOS/Android)
+          shareLink = `whatsapp://send?text=${encodedText}%20${encodedUrl}`;
+        } else {
+          // Web: Open WhatsApp Web
+          shareLink = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+        }
         break;
       case 'facebook':
-        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        if (mobile) {
+          // Mobile: Try Facebook app protocol first
+          shareLink = `fb://share?text=${encodedText}&href=${encodedUrl}`;
+        } else {
+          // Web: Open Facebook share dialog
+          shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        }
         break;
       case 'twitter':
-        shareLink = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        if (mobile) {
+          // Mobile: Use Twitter app protocol
+          shareLink = `twitter://post?message=${encodedText}%20${encodedUrl}`;
+        } else {
+          // Web: Open Twitter share dialog
+          shareLink = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        }
         break;
       case 'instagram':
         // Instagram doesn't support direct sharing via URL, so we'll copy the image
@@ -219,7 +244,14 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     }
 
     if (shareLink) {
-      window.open(shareLink, '_blank', 'width=600,height=400');
+      if (mobile && (platform === 'whatsapp' || platform === 'facebook' || platform === 'twitter')) {
+        // For mobile, try to open app directly using app protocol
+        // The OS will handle fallback if app is not installed
+        window.location.href = shareLink;
+      } else {
+        // For web desktop, open in new window
+        window.open(shareLink, '_blank', 'width=600,height=400');
+      }
       setShowShareMenu(false);
     }
   };

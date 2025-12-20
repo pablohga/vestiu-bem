@@ -25,3 +25,4 @@ CREATE POLICY "Admins can delete clothing items" ON clothing_items
       SELECT 1 FROM users WHERE id = auth.uid() AND role = 'ADMIN'
     )
   );
+
