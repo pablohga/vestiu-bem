@@ -1,11 +1,10 @@
 {
   "name": "VestiuBem",
-  "short_name": "VestiuBem",
+  "short_name": "Vestiu",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ff69b4",
-  "orientation": "portrait",
+  "theme_color": "#d81b60",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
