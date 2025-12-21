@@ -136,10 +136,16 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     }
   };
 
-  // Detect if running on mobile device
+  // Detect if running on mobile device or Android webview
   const isMobile = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
            (window.innerWidth <= 768);
+  };
+
+  // Detect if running in Android webview
+  const isAndroidWebView = () => {
+    const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+    return /Android/i.test(ua) && !/Chrome/i.test(ua) || /wv/i.test(ua);
   };
 
   const handleShare = async (platform?: string) => {
@@ -156,27 +162,50 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
     
     const shareUrl = window.location.href;
     const mobile = isMobile();
+    const androidWebView = isAndroidWebView();
 
-    // Try Web Share API first (mobile/webview)
-    if (!platform && navigator.share && mobile) {
+    // Priority: Use Web Share API for Android webview or mobile (when no specific platform)
+    if (!platform && (navigator.share || androidWebView)) {
       try {
-        // Convert base64 to blob for sharing
-        const response = await fetch(resultImage);
-        const blob = await response.blob();
-        const file = new File([blob], 'meu-look.png', { type: 'image/png' });
+        // For Android webview, try to use Web Share API with image
+        if (navigator.share && navigator.canShare) {
+          const response = await fetch(resultImage);
+          const blob = await response.blob();
+          const file = new File([blob], 'meu-look.png', { type: 'image/png' });
+          
+          const shareData: any = {
+            title: 'Meu Look - VestiuBem',
+            text: shareText,
+            url: shareUrl
+          };
 
-        await navigator.share({
-          title: 'Meu Look - VestiuBem',
-          text: shareText,
-          url: shareUrl,
-          files: [file]
-        });
-        setShowShareMenu(false);
-        return;
+          // Check if files can be shared (Android Chrome/WebView)
+          if (navigator.canShare({ files: [file] })) {
+            shareData.files = [file];
+          }
+
+          await navigator.share(shareData);
+          setShowShareMenu(false);
+          return;
+        } else if (navigator.share) {
+          // Fallback: share without file if canShare is not available
+          await navigator.share({
+            title: 'Meu Look - VestiuBem',
+            text: shareText,
+            url: shareUrl
+          });
+          setShowShareMenu(false);
+          return;
+        }
       } catch (err) {
         // User cancelled or error, fall through to platform-specific sharing
         if ((err as Error).name !== 'AbortError') {
           console.error('Error sharing:', err);
+          // If Web Share API fails in webview, continue to platform-specific options
+        } else {
+          // User cancelled, just close menu
+          setShowShareMenu(false);
+          return;
         }
       }
     }
@@ -394,7 +423,17 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
                     </Button>
                   )}
                   <div className="relative" ref={shareMenuRef}>
-                    <Button onClick={() => setShowShareMenu(!showShareMenu)}>
+                    <Button 
+                      onClick={() => {
+                        // In Android webview, directly trigger native share
+                        if (isAndroidWebView() && navigator.share) {
+                          handleShare();
+                        } else {
+                          // Otherwise, show menu
+                          setShowShareMenu(!showShareMenu);
+                        }
+                      }}
+                    >
                       📤 Compartilhar Look
                     </Button>
                     {showShareMenu && (
