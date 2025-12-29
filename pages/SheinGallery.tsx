@@ -59,7 +59,7 @@ export const SheinGallery: React.FC = () => {
                       R$ {item.price.toFixed(2)}
                     </span>
                     {item.shein_link && item.shein_link !== '#' && (
-                      <a href={item.shein_link} target="_blank" rel="noopener noreferrer">
+                      <a href={item.shein_link} rel="noopener noreferrer">
                         <Button size="sm">Comprar</Button>
                       </a>
                     )}

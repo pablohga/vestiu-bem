@@ -49,9 +49,9 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout, currentPage, onN
                 </>
               ) : (
                 <>
-                <a href="https://google.com" rel="noopener noreferrer">
+                {/* <a href="https://google.com" rel="noopener noreferrer">
                   Comprar
-                </a>
+                </a> */}
                   <Button variant="outline" onClick={() => onNavigate('login')} className="text-xs sm:text-sm">Entrar</Button>
                   <Button variant="primary" onClick={() => onNavigate('register')} className="text-xs sm:text-sm">Criar Conta</Button>
                 </>
