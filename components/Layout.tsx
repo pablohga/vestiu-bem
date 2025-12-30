@@ -23,22 +23,22 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout, currentPage, onN
             <div className="flex items-center space-x-4">
               {user ? (
                 <>
-                  <button 
-                    onClick={() => onNavigate('tryon')} 
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'tryon' ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-brand-600'}`}
+                  <button
+                    onClick={() => onNavigate('tryon')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === '/tryon' ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-brand-600'}`}
                   >
                     Provador
                   </button>
-                  <button 
-                    onClick={() => onNavigate('gallery')} 
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'gallery' ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-brand-600'}`}
+                  <button
+                    onClick={() => onNavigate('gallery')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === '/gallery' ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-brand-600'}`}
                   >
                     Minha Galeria
                   </button>
                   {user.role === UserRole.ADMIN && (
-                    <button 
-                      onClick={() => onNavigate('admin')} 
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'admin' ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-brand-600'}`}
+                    <button
+                      onClick={() => onNavigate('admin')}
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === '/admin' ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-brand-600'}`}
                     >
                       Admin
                     </button>
