@@ -534,6 +534,19 @@ export const addClothingItem = async (item: Omit<ClothingItem, 'id'>): Promise<C
   };
 };
 
+export const updateClothingItem = async (id: string, updates: Partial<Omit<ClothingItem, 'id'>>) => {
+  const { updateClothingItem: updateClothingItemSupabase } = await import('./supabase');
+  const updatedItem = await updateClothingItemSupabase(id, updates);
+  return {
+    id: updatedItem.id,
+    name: updatedItem.name,
+    description: updatedItem.description || undefined,
+    image_url: updatedItem.image_url,
+    price: updatedItem.price,
+    shein_link: updatedItem.shein_link
+  };
+};
+
 export const deleteClothingItem = async (id: string) => {
   await deleteClothingItemSupabase(id);
 };

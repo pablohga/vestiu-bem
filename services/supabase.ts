@@ -152,35 +152,86 @@ export const createClothingItem = async (item: {
   return data;
 };
 
-export const deleteClothingItem = async (itemId: string) => {
-  console.log('deleteClothingItem chamado com ID:', itemId);
-  
+export const updateClothingItem = async (itemId: string, updates: {
+  name?: string;
+  description?: string;
+  image_url?: string;
+  price?: number;
+  shein_link?: string;
+}) => {
+  console.log('updateClothingItem chamado com ID:', itemId);
+
   // Verifica se o usuário está autenticado
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('Usuário não autenticado');
   }
-  
+
   console.log('Usuário autenticado:', user.id);
-  
+
   // Verifica se é admin
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('role')
     .eq('id', user.id)
     .single();
-  
+
   if (userError || !userData) {
     console.error('Erro ao verificar permissões:', userError);
     throw new Error('Erro ao verificar permissões de administrador');
   }
-  
+
+  if (userData.role !== 'ADMIN') {
+    throw new Error('Apenas administradores podem editar itens');
+  }
+
+  console.log('Permissões verificadas. Tentando atualizar item...');
+
+  const { data, error } = await supabase
+    .from('clothing_items')
+    .update(updates)
+    .eq('id', itemId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erro no updateClothingItem:', error);
+    throw error;
+  }
+
+  console.log('Item atualizado com sucesso:', data);
+  return data;
+};
+
+export const deleteClothingItem = async (itemId: string) => {
+  console.log('deleteClothingItem chamado com ID:', itemId);
+
+  // Verifica se o usuário está autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  console.log('Usuário autenticado:', user.id);
+
+  // Verifica se é admin
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData) {
+    console.error('Erro ao verificar permissões:', userError);
+    throw new Error('Erro ao verificar permissões de administrador');
+  }
+
   if (userData.role !== 'ADMIN') {
     throw new Error('Apenas administradores podem deletar itens');
   }
-  
+
   console.log('Permissões verificadas. Tentando deletar item...');
-  
+
   // Deleta e retorna os dados deletados para confirmar
   const { data, error } = await supabase
     .from('clothing_items')
@@ -192,12 +243,12 @@ export const deleteClothingItem = async (itemId: string) => {
     console.error('Erro no deleteClothingItem:', error);
     throw error;
   }
-  
+
   if (!data || data.length === 0) {
     console.warn('Nenhum item foi deletado. ID pode não existir ou não há permissão:', itemId);
     throw new Error('Item não encontrado ou sem permissão para deletar');
   }
-  
+
   console.log('Item deletado com sucesso:', data);
   return data;
 };
