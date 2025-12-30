@@ -34,6 +34,20 @@ export const generateTryOnImage = async (
     3. A roupa deve se ajustar naturalmente ao corpo do modelo (caimento realista, dobras, iluminação).
     4. Mantenha o fundo original se possível, ou use um fundo de estúdio neutro e elegante se o recorte for difícil.
     5. Alta resolução, nítido, estilo Shein/Fashion Nova.
+
+    PROMPT NEGATIVO:
+    Evite: distorções faciais, mudança de identidade do modelo, rosto diferente,
+    olhos desalinhados, boca torta, pele artificial, tom de pele alterado,
+    corpo deformado, proporções irreais, membros extras, braços ou pernas faltando,
+    mãos deformadas, dedos extras, dedos fundidos, mãos borradas,
+    pose diferente da original, expressão facial alterada, roupa mal encaixada,
+    roupa flutuando, roupa colada artificialmente, textura de tecido irreal,
+    dobras incorretas, costuras erradas, sombras inconsistentes, iluminação irreal,
+    reflexos estranhos, baixa resolução, imagem borrada, pixelização, ruído excessivo,
+    arte digital, estilo cartoon, anime, ilustração, pintura, CGI, 3D render,
+    aparência plástica, efeito boneca, fundo bagunçado, fundo distorcido,
+    recortes visíveis, bordas serrilhadas, marcas d’água, textos, logotipos,
+    branding, distorções de perspectiva.
   `;
 
   try {

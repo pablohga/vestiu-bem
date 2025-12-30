@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { GeneratedImage, User } from '../types';
 import { getUserImages } from '../services/auth';
-import { Card } from '../components/UI';
+import { Card, LoadingSpinner } from '../components/UI';
 
 export const Gallery: React.FC<{ user: User }> = ({ user }) => {
   const [images, setImages] = useState<GeneratedImage[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadImages = async () => {
       const imgs = await getUserImages(user.id);
       setImages(imgs);
+      setLoading(false);
     };
     loadImages();
   }, [user.id]);
@@ -17,8 +19,13 @@ export const Gallery: React.FC<{ user: User }> = ({ user }) => {
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Minha Galeria</h1>
-      
-      {images.length === 0 ? (
+
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <LoadingSpinner />
+          <span className="ml-2 text-gray-500">Carregando imagens...</span>
+        </div>
+      ) : images.length === 0 ? (
         <Card className="text-center py-12">
           <p className="text-gray-500">Você ainda não gerou nenhuma imagem. Vá ao provador!</p>
         </Card>

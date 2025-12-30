@@ -156,9 +156,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode, onSuccess, onSwitchMod
 
         {currentMode === 'login' && (
            <div className="mt-4 p-4 bg-gray-50 rounded text-xs text-gray-500 border border-gray-200">
-             <p className="font-bold">Acesso Admin Demo:</p>
-             <p>Email: admin@vestiubem.com</p>
-             <p>Senha: admin</p>
+              <p className="font-bold">Duvidas ou sugestões:</p>
+              <p>Email: admin@vestiubem.com</p>
            </div>
         )}
       </Card>
