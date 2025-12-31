@@ -10,6 +10,7 @@ import { TryOn } from './pages/TryOn';
 import { Gallery } from './pages/Gallery';
 import { SheinGallery } from './pages/SheinGallery';
 import { AdminDashboard } from './pages/Admin';
+import { PrivacyPage } from './pages/Privacy';
 
 export default function App() {
   const navigate = useNavigate();
@@ -256,6 +257,7 @@ export default function App() {
         <Route path="/tryon" element={<ProtectedRoute><TryOn user={user!} onNavigate={navigateTo} /></ProtectedRoute>} />
         <Route path="/gallery" element={<ProtectedRoute><Gallery user={user!} /></ProtectedRoute>} />
         <Route path="/shein-gallery" element={<ProtectedRoute><SheinGallery /></ProtectedRoute>} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
       </Routes>
     </Layout>

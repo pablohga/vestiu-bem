@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button, Card, LoadingSpinner } from '../components/UI';
 import { ClothingItem, User } from '../types';
 import { generateTryOnImage, fileToAsset } from '../services/gemini';
@@ -14,6 +14,9 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
   const [userImagePreview, setUserImagePreview] = useState<string>('');
   
   const [catalog, setCatalog] = useState<ClothingItem[]>([]);
+  const [loadedItems, setLoadedItems] = useState<ClothingItem[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedClothing, setSelectedClothing] = useState<ClothingItem | null>(null);
   
   const [customClothingImage, setCustomClothingImage] = useState<File | null>(null);
@@ -27,12 +30,15 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const clothingInputRef = useRef<HTMLInputElement>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+  const catalogScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load dynamic catalog
     const loadCatalog = async () => {
       const items = await getClothingItems();
       setCatalog(items);
+      setLoadedItems(items.slice(0, 6));
+      setHasMore(items.length > 6);
     };
     loadCatalog();
   }, []);
@@ -53,6 +59,40 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showShareMenu]);
+
+  const loadMoreItems = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    // Simulate loading delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const currentLength = loadedItems.length;
+    const nextItems = catalog.slice(currentLength, currentLength + 6);
+    setLoadedItems(prev => [...prev, ...nextItems]);
+    setHasMore(currentLength + nextItems.length < catalog.length);
+    setIsLoadingMore(false);
+  }, [isLoadingMore, hasMore, loadedItems.length, catalog]);
+
+  // Handle scroll for load more
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!catalogScrollRef.current) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = catalogScrollRef.current;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px threshold
+
+      if (isNearBottom && hasMore && !isLoadingMore) {
+        loadMoreItems();
+      }
+    };
+
+    const scrollElement = catalogScrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll);
+      return () => scrollElement.removeEventListener('scroll', handleScroll);
+    }
+  }, [hasMore, isLoadingMore, loadMoreItems]);
 
   const handleUserImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -354,8 +394,8 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
           {catalog.length === 0 ? (
             <p className="text-xs text-gray-400 italic p-2">Nenhum item no catálogo. Adicione via Admin.</p>
           ) : (
-            <div className="grid grid-cols-2 gap-2 min-h-[750px] overflow-y-auto pr-1">
-              {catalog.map(item => (
+            <div className="grid grid-cols-2 gap-2 max-h-[750px] overflow-y-auto pr-1" ref={catalogScrollRef}>
+              {loadedItems.map(item => (
                 <div
                   key={item.id}
                   className={`min-h-[350px] cursor-pointer rounded-lg overflow-hidden border-2 relative group ${selectedClothing?.id === item.id ? 'border-brand-500 ring-2 ring-brand-200' : 'border-transparent'}`}
@@ -368,6 +408,11 @@ export const TryOn: React.FC<TryOnProps> = ({ user, onNavigate }) => {
                   </div>
                 </div>
               ))}
+              {isLoadingMore && (
+                <div className="col-span-2 flex justify-center py-4">
+                  <LoadingSpinner />
+                </div>
+              )}
             </div>
           )}
         </Card>
